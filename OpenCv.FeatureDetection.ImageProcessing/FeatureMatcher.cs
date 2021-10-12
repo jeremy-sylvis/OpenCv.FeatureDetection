@@ -69,50 +69,6 @@ namespace OpenCv.FeatureDetection.ImageProcessing
             }
         }
 
-        public Mat DetectFeatures(Mat image, Feature2D featureDetector, bool downScale, bool preProcess, bool edgeDetect)
-        {
-            if (downScale)
-            {
-                CvInvoke.Resize(image, image, Size.Empty, 0.5, 0.5, Inter.Area);
-            }
-
-            if (preProcess)
-            {
-                CvInvoke.Threshold(image, image, 128, 255, ThresholdType.Binary);
-            }
-
-            if (edgeDetect)
-            {
-                var edgeImage = new Mat();
-                //CvInvoke.GaussianBlur(observedImage, observedEdgeImage, new Size(3, 3), 0);
-                //CvInvoke.Canny(observedImage, observedEdgeImage, 0, 255);
-                image = edgeImage;
-            }
-
-            //LogMaterial("observedImageMat", observedImageMat);
-            var observedImageResult = DetectAndDrawFeatures(featureDetector, image);
-
-            return observedImageResult;
-        }
-
-        private Mat DetectAndDrawFeatures(Feature2D featureDetector, Mat observedImage)
-        {
-            //var observedGrayscaleImageMat = new Mat();
-            //CvInvoke.CvtColor(observedImage, observedGrayscaleImageMat, ColorConversion.Bgr2Gray);
-            var observedGrayscaleImageMat = observedImage;
-
-            using (UMat observedImageUmat = observedGrayscaleImageMat.GetUMat(AccessType.Read))
-            {
-                var observedImageKeypointArray = featureDetector.Detect(observedImageUmat);
-                var observedImageKeypoints = new VectorOfKeyPoint(observedImageKeypointArray);
-
-                var result = new Mat();
-                Features2DToolbox.DrawKeypoints(observedImage, observedImageKeypoints, result, new Bgr(255, 0, 0));
-                //LogMaterial("result", result);
-                return result;
-            }
-        }
-
         /// <summary>
         /// Detect features in the given image using the given feature detector.
         /// </summary>
