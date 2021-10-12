@@ -1,11 +1,11 @@
 [
   {
-    "fileName": "my-first-input-file.jpg",
-    "regionOfInterest": {
-      "top": 0,
-      "bottom": 0,
-      "left": 0,
-      "right":  0
+    "FileName": "my-first-input-file.jpg",
+    "RegionOfInterest": {
+      "X": "5",
+      "Y": "4",
+      "Width": "20",
+      "Height": "30"
     }
   }
 ]

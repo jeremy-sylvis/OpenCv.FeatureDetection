@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OpenCv.FeatureDetection.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "-Operation FuzzFeatureDetectors -InputPath \"C:\\Users\\tviru\\source\\repos\\OpenCv.FeatureDetection\\fuzzer-inputs\" -OutputPath \"C:\\Users\\tviru\\source\\repos\\OpenCv.FeatureDetection\\fuzzer-outputs\""
+    }
+  }
+}

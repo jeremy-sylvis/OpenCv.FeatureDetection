@@ -1,6 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,7 +31,32 @@ namespace OpenCv.FeatureDetection.Console
     public class ImageToProcess
     {
         public string FileName { get; set; }
-        public Rectangle RegionOfInterest { get; private set; }
+        public Rectangle RegionOfInterest { get; set; }
+    }
+
+    // Helper for deserializing Rectangle
+    public class RectangleConverter : CustomCreationConverter<Rectangle>
+    {
+        public override bool CanWrite => false;
+        public override bool CanRead => true;
+
+        public override Rectangle Create(Type objectType)
+        {
+            return new Rectangle();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            var jsonObject = JObject.Load(reader);
+
+            var x = jsonObject["X"].Value<int>();
+            var y = jsonObject["Y"].Value<int>();
+            var height = jsonObject["Height"].Value<int>();
+            var width = jsonObject["Width"].Value<int>();
+
+            var rectangle = new Rectangle(new Point(x, y), new Size(width, height));
+            return rectangle;
+        }
     }
 
     /// <summary>
@@ -35,6 +64,8 @@ namespace OpenCv.FeatureDetection.Console
     /// </summary>
     public class FeatureDetectorFuzzer
     {
+        public const string InputFileName = "fuzzer-input.json";
+
         private readonly FuzzFeatureDetectorParameters _parameters;
 
         public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters)
@@ -61,7 +92,22 @@ namespace OpenCv.FeatureDetection.Console
         /// </summary>
         private IEnumerable<ImageToProcess> GetInputImages()
         {
-            throw new NotImplementedException();
+            var filePath = Path.Combine(_parameters.InputPath, InputFileName);
+
+            if (!File.Exists(filePath))
+            {
+                throw new InvalidOperationException($"Fuzzer input file {InputFileName} not found at input path {_parameters.InputPath}");
+            }
+
+            string fileText;
+            using (var file = File.Open(filePath, FileMode.Open))
+            using (var streamReader = new StreamReader(file))
+            {
+                fileText = streamReader.ReadToEnd();
+            }
+
+            var imagesToProcess = JsonConvert.DeserializeObject<IEnumerable<ImageToProcess>>(fileText, new RectangleConverter());
+            return imagesToProcess;
         }
     }
 }
