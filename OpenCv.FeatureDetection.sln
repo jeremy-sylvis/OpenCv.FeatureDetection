@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31515.178
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenCv.FeatureDetection.Console", "OpenCv.FeatureDetection.Console\OpenCv.FeatureDetection.Console.csproj", "{8645E81D-7C3F-499D-827E-6B1B951A01FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenCv.FeatureDetection.ImageProcessing", "OpenCv.FeatureDetection.ImageProcessing\OpenCv.FeatureDetection.ImageProcessing.csproj", "{F4125F64-0F7A-4065-8D34-820541ED177F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8645E81D-7C3F-499D-827E-6B1B951A01FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8645E81D-7C3F-499D-827E-6B1B951A01FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8645E81D-7C3F-499D-827E-6B1B951A01FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8645E81D-7C3F-499D-827E-6B1B951A01FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4125F64-0F7A-4065-8D34-820541ED177F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4125F64-0F7A-4065-8D34-820541ED177F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4125F64-0F7A-4065-8D34-820541ED177F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4125F64-0F7A-4065-8D34-820541ED177F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1B17218B-B5B3-461A-90D5-B87326B63216}
+	EndGlobalSection
+EndGlobal
