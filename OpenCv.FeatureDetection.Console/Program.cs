@@ -10,12 +10,13 @@ namespace OpenCv.FeatureDetection.Console
 
             var parameterParser = new ParameterParser();
             var parameters = parameterParser.Parse(args);
+            var logger = new Logger();
 
             switch (parameters.Operation)
             {
                 case ParameterParser.FuzzFeatureDetectorsOperation:
                     System.Console.WriteLine("Fuzzing feature detectors. Warning: This may take a while to complete.");
-                    var featureDetectorFuzzer = new FeatureDetectorFuzzer(parameters.FuzzFeatureDetectorParameters);
+                    var featureDetectorFuzzer = new FeatureDetectorFuzzer(parameters.FuzzFeatureDetectorParameters, logger);
                     featureDetectorFuzzer.FuzzFeatureDetectors();
                     break;
                 default:

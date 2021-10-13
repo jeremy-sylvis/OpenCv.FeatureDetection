@@ -54,7 +54,7 @@ namespace OpenCv.FeatureDetection.ImageProcessing
         /// </summary>
         /// <param name="image"></param>
         /// <param name="rectangle"></param>
-        public void DrawRectangle(Mat image, Rectangle rectangle)
+        public void DrawRectangle(UMat image, Rectangle rectangle)
         {
             //using (UMat imageUmat = image.GetUMat(AccessType.ReadWrite))
             {
@@ -63,7 +63,7 @@ namespace OpenCv.FeatureDetection.ImageProcessing
         }
 
         /// <summary>
-        /// Draw the given keypoints on the given image.
+        /// Draw the given keypoints on the a clone of the given image.
         /// </summary>
         /// <param name="image"></param>
         /// <param name="keypoints"></param>
@@ -80,6 +80,20 @@ namespace OpenCv.FeatureDetection.ImageProcessing
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Draw the given keypoints on the given image.
+        /// </summary>
+        /// <param name="image"></param>
+        /// <param name="keypoints"></param>
+        /// <returns></returns>
+        public void DrawKeypointsOn(UMat image, MKeyPoint[] keypoints)
+        {
+            using (VectorOfKeyPoint keypointsVector = new VectorOfKeyPoint(keypoints))
+            {
+                Features2DToolbox.DrawKeypoints(image, keypointsVector, image, new Bgr(255, 0, 0));
+            }
         }
     }
 }
