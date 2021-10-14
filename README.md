@@ -28,7 +28,7 @@ Such a spreadsheet might look like [this](https://docs.google.com/spreadsheets/d
 
 ![Spreadsheet example image](examples/feature-detector-fuzzer-spreadsheet.jpg)
 
-You can quickly and easily identify file `fishing-hud-bobber-001-AKAZE-44.jpg` as a result with a relatively good inlier/outlier ratio and acceptable execution time, and review it to ensure quality of inliers: 
+You can quickly and easily identify file [fishing-hud-bobber-001-AKAZE-44.jpg](examples/fishing-hud-bobber-001-AKAZE-44.jpg) as a result with a relatively good inlier/outlier ratio and acceptable execution time, and review it to ensure quality of inliers: 
 
 ![Output image for review](examples/fishing-hud-bobber-001-AKAZE-44.jpg)
 
