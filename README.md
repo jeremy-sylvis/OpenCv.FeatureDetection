@@ -32,3 +32,11 @@ Parameters required:
 
 Execution:
 `OpenCv.FeatureDetection.Console.exe -Operation FuzzFeatureDetectors -InputPath <myPath> -OutputPath <myOutputPath>`
+
+## OpenCV Usage
+### Mat vs UMat
+Using UMat in favor of Mat comes with serious performance implications. Benchmark often to determine which is more appropriate for your scenario.
+
+The primary benefit of UMat is that wherever possible (and, in theory, _sensible_) OpenCV will opt for an OpenCL-accelerated execution route. Understand that GPU-accelerated OpenCL contexts can be _incredibly_ expensive to set up. For some cases, e.g. Feature2DToolbox.DrawKeypoints, the UMat variant ("accelerated") will run orders of magnitude slower than the Mat variant.
+
+In practice, I've only observed gains from use of UMat with GPU-accelerated feature detection algorithms (e.g. AKAZE) and nowhere else in this codebase.

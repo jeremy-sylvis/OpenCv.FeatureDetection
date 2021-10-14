@@ -8,6 +8,8 @@ namespace OpenCv.FeatureDetection.ImageProcessing
 {
     public class ImageDrawing
     {
+        private readonly object _lockObject = new object();
+
         /// <summary>
         /// Draw matches between the given model image and its keypoints and the given observed image and its keypoints using the given matches, mask of descriptors, and homography.
         /// </summary>
@@ -54,7 +56,7 @@ namespace OpenCv.FeatureDetection.ImageProcessing
         /// </summary>
         /// <param name="image"></param>
         /// <param name="rectangle"></param>
-        public void DrawRectangle(UMat image, Rectangle rectangle)
+        public void DrawRectangleOn(IInputOutputArray image, Rectangle rectangle)
         {
             //using (UMat imageUmat = image.GetUMat(AccessType.ReadWrite))
             {
@@ -67,13 +69,31 @@ namespace OpenCv.FeatureDetection.ImageProcessing
         /// </summary>
         /// <param name="image"></param>
         /// <param name="keypoints"></param>
-        /// <returns></returns>
+        /// <returns>Updated image</returns>
         public Mat DrawKeypoints(Mat image, MKeyPoint[] keypoints)
         {
-            // Clone the image so we can work on an intermediate
-            var result = image.Clone();
             //using (UMat imageUmat = image.GetUMat(AccessType.Read))
             //using (UMat resultUmat = result.GetUMat(AccessType.ReadWrite))
+            var result = image.Clone();
+            using (VectorOfKeyPoint keypointsVector = new VectorOfKeyPoint(keypoints))
+            {
+                Features2DToolbox.DrawKeypoints(image, keypointsVector, result, new Bgr(255, 0, 0));
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Draw the given keypoints on the a clone of the given image.
+        /// </summary>
+        /// <param name="image"></param>
+        /// <param name="keypoints"></param>
+        /// <returns>Updated image</returns>
+        public UMat DrawKeypoints(UMat image, MKeyPoint[] keypoints)
+        {
+            //using (UMat imageUmat = image.GetUMat(AccessType.Read))
+            //using (UMat resultUmat = result.GetUMat(AccessType.ReadWrite))
+            var result = image.Clone();
             using (VectorOfKeyPoint keypointsVector = new VectorOfKeyPoint(keypoints))
             {
                 Features2DToolbox.DrawKeypoints(image, keypointsVector, result, new Bgr(255, 0, 0));
@@ -88,11 +108,11 @@ namespace OpenCv.FeatureDetection.ImageProcessing
         /// <param name="image"></param>
         /// <param name="keypoints"></param>
         /// <returns></returns>
-        public void DrawKeypointsOn(UMat image, MKeyPoint[] keypoints)
+        public void DrawKeypointsOn(IInputOutputArray image, MKeyPoint[] keypoints)
         {
             using (VectorOfKeyPoint keypointsVector = new VectorOfKeyPoint(keypoints))
             {
-                Features2DToolbox.DrawKeypoints(image, keypointsVector, image, new Bgr(255, 0, 0));
+                    Features2DToolbox.DrawKeypoints(image, keypointsVector, image, new Bgr(255, 0, 0));
             }
         }
     }

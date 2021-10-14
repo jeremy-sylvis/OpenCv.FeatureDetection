@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using OpenCv.FeatureDetection.ImageProcessing;
+using OpenCv.FeatureDetection.ImageProcessing.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -26,14 +27,15 @@ namespace OpenCv.FeatureDetection.Console
 
         public int TotalFeatureCount { get; private set; }
         public int InlierFeatureCount { get; private set; }
+        public int OutlierFeatureCount { get { return TotalFeatureCount - OutlierFeatureCount; } }
         public float InlierOutlierRatio { get { return (float)InlierFeatureCount / (float)TotalFeatureCount; } }
 
-        public int ExecutionTimeMs { get; private set; }
+        public long ExecutionTimeMs { get; private set; }
 
         public string FeatureDetector { get; private set; }
         public string FeatureDetectorConfiguration { get; private set; }
 
-        public FeatureDetectionResult(string fileName, MKeyPoint[] keyPoints, int totalFeatureCount, int inlierFeatureCount, int executionTimeMs, string featureDetector, string featureDetectorConfiguration)
+        public FeatureDetectionResult(string fileName, MKeyPoint[] keyPoints, int totalFeatureCount, int inlierFeatureCount, long executionTimeMs, string featureDetector, string featureDetectorConfiguration)
         {
             FileName = fileName;
             KeyPoints = keyPoints;
@@ -92,12 +94,14 @@ namespace OpenCv.FeatureDetection.Console
         private readonly FuzzFeatureDetectorParameters _parameters;
         private readonly Logger _logger;
         private readonly ImageDrawing _imageDrawing;
+        private readonly AkazeRunner _akazeRunner;
 
-        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing)
+        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner)
         {
             _parameters = parameters;
             _logger = logger;
             _imageDrawing = imageDrawing;
+            _akazeRunner = akazeRunner;
         }
 
         /// <summary>
@@ -108,9 +112,9 @@ namespace OpenCv.FeatureDetection.Console
             var imagesToProcess = GetInputImages();
 
             // TODO: Ensure output is cleared before run
-            var outputFilePath = Path.Combine(_parameters.OutputPath, OutputFileName);
-            using (var outputFile = File.Create(outputFilePath))
-            using (var outputStreamWriter = new StreamWriter(outputFile))
+            var reportFilePath = Path.Combine(_parameters.OutputPath, OutputFileName);
+            using (var reportfile = File.Create(reportFilePath))
+            using (var reportStreamWriter = new StreamWriter(reportfile))
             {
                 foreach (var imageToProcess in imagesToProcess)
                 {
@@ -122,10 +126,14 @@ namespace OpenCv.FeatureDetection.Console
                     }
 
                     _logger.WriteMessage($"Processing file {imageToProcess.FileName}");
-                    using (var imageUmat = new UMat(imagePath, Emgu.CV.CvEnum.ImreadModes.Color))
+                    using (var imageMat = new Mat(imagePath, Emgu.CV.CvEnum.ImreadModes.Color))
                     {
-                        var akazeResults = await FuzzAkaze(imageToProcess, imageUmat);
-                        await WriteDetectionResults(outputStreamWriter, akazeResults, imageUmat, imageToProcess.RegionOfInterest);
+                        var results = FuzzAkaze(imageToProcess, imageMat);
+                        //Parallel.ForEach(results, new ParallelOptions { MaxDegreeOfParallelism = 4 }, (x, y, index) =>
+                        Parallel.ForEach(results, (x, y, index) =>
+                        {
+                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                        });
                     }
                 }
             }
@@ -134,32 +142,26 @@ namespace OpenCv.FeatureDetection.Console
         /// <summary>
         /// Write the results of feature detection to outputs.
         /// </summary>
-        /// <param name="featureDetectionResults"></param>
+        /// <param name="result"></param>
         /// <returns></returns>
-        private async Task WriteDetectionResults(StreamWriter outputStream, IList<FeatureDetectionResult> featureDetectionResults, UMat sourceImage, Rectangle regionOfInterest)
+        private void WriteDetectionResults(StreamWriter outputStream, FeatureDetectionResult result, int index, Mat sourceImage, Rectangle regionOfInterest)
         {
-            var outputFilePath = Path.Combine(_parameters.OutputPath, OutputFileName);
+            var generatedImageFileName = $"{result.FileName.Remove(result.FileName.Length - 4, 4)}-{result.FeatureDetector}-{index}.jpg";
+            var generatedImageFilePath = Path.Combine(_parameters.OutputPath, generatedImageFileName);
 
-            for (var index = 0; index < featureDetectionResults.Count; index++)
+            // Clone the output image for drawing
+            using (var outputImage = sourceImage.Clone())
             {
-                var featureDetectionResult = featureDetectionResults[index];
-                var outputFileName = $"{featureDetectionResult.FileName.Remove(featureDetectionResult.FileName.Length - 4, 4)}-{featureDetectionResult.FeatureDetector}-{index}.jpg";
-
-                await Task.Run(() =>
+                _imageDrawing.DrawRectangleOn(outputImage, regionOfInterest);
+                //using (var updatedOutputImage = _imageDrawing.DrawKeypoints(outputImage, result.KeyPoints))
+                _imageDrawing.DrawKeypointsOn(outputImage, result.KeyPoints);
                 {
-                    // Clone the output image for drawing
-                    using (var outputImage = sourceImage.Clone())
-                    {
-                        _imageDrawing.DrawKeypointsOn(outputImage, featureDetectionResult.KeyPoints);
-                        _imageDrawing.DrawRectangle(outputImage, regionOfInterest);
-                        outputImage.Save(outputFileName);
-                    }
-                });
-
-                var csvMessage = string.Join(',', featureDetectionResult.FileName, featureDetectionResult.InlierFeatureCount, featureDetectionResult.TotalFeatureCount,
-                    featureDetectionResult.InlierOutlierRatio, featureDetectionResult.ExecutionTimeMs, featureDetectionResult.FeatureDetector, featureDetectionResult.FeatureDetectorConfiguration);
-                await outputStream.WriteLineAsync(csvMessage);
+                    outputImage.Save(generatedImageFilePath);
+                }
             }
+
+            var csvMessage = string.Join(',', result.FileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, result.FeatureDetector, result.FeatureDetectorConfiguration);
+            outputStream.WriteLine(csvMessage);
         }
 
         /// <summary>
@@ -181,56 +183,50 @@ namespace OpenCv.FeatureDetection.Console
         /// <param name="imageToProcess"></param>
         /// <param name="image"></param>
         /// <returns></returns>
-        private async Task<IList<FeatureDetectionResult>> FuzzAkaze(ImageToProcess imageToProcess, UMat image)
+        private IEnumerable<FeatureDetectionResult> FuzzAkaze(ImageToProcess imageToProcess, Mat image)
         {
-            var results = new List<FeatureDetectionResult>();
-            var stopwatch = new System.Diagnostics.Stopwatch();
+            // TODO: Re-tool this to build a set of parameters describing an AKAZE run,
+            // extract the actual run logic to an async method,
+            // use a partitioned parallel foreach to iterate the set of described runs and run the job itself async,
+            // yield/return _from that_
 
-            // TODO: We should probably allow people to opt-in to invariant transform options
-            var descriptorTypes = new[] { AKAZE.DescriptorType.KazeUpright, AKAZE.DescriptorType.MldbUpright };
+            var akazeRuns = _akazeRunner.GetParameters(imageToProcess, image);
 
-            foreach (var descriptorType in descriptorTypes)
+            var skip = 0;
+            var batchSize = 10;
+            do
             {
-                foreach (KAZE.Diffusivity diffusivityType in (KAZE.Diffusivity[])Enum.GetValues(typeof(KAZE.Diffusivity)))
+                var batchResults = akazeRuns
+                    .Skip(skip)
+                    .Take(batchSize)
+                    .AsParallel()
+                    .Select(_akazeRunner.PerformDetection)
+                    .ToArray();
+
+                //var batchResults = new List<FeatureDetectionResult>(batchSize);
+                //await batch.ParallelForEachAsync(10, x =>
+                //{
+                //    var batchResult = _akazeRunner.PerformDetection(x);
+                //    batchResults.Add(batchResult);
+                //})
+                //Parallel.ForEach(batch, new ParallelOptions { MaxDegreeOfParallelism = 10 }, x =>
+                //{
+                //    var batchResult = _akazeRunner.PerformDetection(x);
+                //    batchResults.Add(batchResult);
+                //});
+
+                foreach (var batchResult in batchResults)
                 {
-                    for (float threshold = 0.001f; threshold < 0.051f; threshold += 0.005f)
-                    {
-                        for (var octaves = 1; octaves <= 6; octaves++)
-                        {
-                            for (var octaveLevels = 1; octaveLevels <= 6; octaveLevels++)
-                            {
-                                await Task.Run(() =>
-                                {
-                                    using (var featureDetector = new AKAZE(descriptorType: descriptorType, threshold: threshold, nOctaves: octaves, nOctaveLayers: octaveLevels, diffusivity: diffusivityType))
-                                    {
-                                        stopwatch.Start();
-
-                                        var keypoints = featureDetector.Detect(image);
-
-                                        stopwatch.Stop();
-                                        stopwatch.Reset();
-
-                                        // Set results
-                                        var keypointsInRegionOfInterest = keypoints.Count(x => IsPointInRegionOfInterest(x.Point, imageToProcess.RegionOfInterest));
-                                        var parameters = $"\"descriptorType: {descriptorType}, diffusivityType: {diffusivityType}, threshold: {threshold}, octaves: {octaves}, octaveLevels: {octaveLevels}\"";
-                                        var result = new FeatureDetectionResult(imageToProcess.FileName, keypoints, keypoints.Length, keypointsInRegionOfInterest, 1, "AKAZE", parameters);
-                                        results.Add(result);
-                                    }
-                                });
-                            }
-                        }
-                    }
+                    yield return batchResult;
                 }
-            }
 
-            return results;
+                skip += batchSize;
+                if (skip >= akazeRuns.Count) break;
+
+            } while (true);
         }
 
-        private static bool IsPointInRegionOfInterest(PointF point, Rectangle regionOfInterest)
-        {
-            return regionOfInterest.Left <= point.X && point.X <= regionOfInterest.Right &&
-                regionOfInterest.Bottom <= point.Y && point.Y <= regionOfInterest.Top;
-        }
+
 
         /// <summary>
         /// Scan the input path for files related to fuzzing feature detectors.
