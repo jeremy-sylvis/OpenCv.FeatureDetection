@@ -52,12 +52,12 @@ namespace OpenCv.FeatureDetection.Console
                 }
                 
                 stopwatch.Stop();
-                stopwatch.Reset();
 
                 // Set results
                 var keypointsInRegionOfInterest = keypoints.Count(x => IsPointInRegionOfInterest(x.Point, parameters.ImageParameters.RegionOfInterest));
                 var parameterText = $"\"descriptorType: {parameters.DescriptorType}, diffusivityType: {parameters.DiffusivityType}, threshold: {parameters.Threshold}, octaves: {parameters.Octaves}, octaveLayers: {parameters.OctaveLayers}\"";
                 var result = new FeatureDetectionResult(parameters.ImageParameters.FileName, keypoints, keypoints.Length, keypointsInRegionOfInterest, stopwatch.ElapsedMilliseconds, "AKAZE", parameterText);
+
                 return result;
             }
         }
