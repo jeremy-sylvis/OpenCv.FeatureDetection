@@ -116,6 +116,12 @@ namespace OpenCv.FeatureDetection.Console
             using (var reportfile = File.Create(reportFilePath))
             using (var reportStreamWriter = new StreamWriter(reportfile))
             {
+                reportStreamWriter.AutoFlush = true;
+
+                // Insert a header row
+                var headerRow = "FileName,Inliers,Total,Inlier/Outlier Ratio,Execution (ms),Algorithm,Parameters";
+                reportStreamWriter.WriteLine(headerRow);
+
                 foreach (var imageToProcess in imagesToProcess)
                 {
                     var imagePath = Path.Combine(_parameters.InputPath, imageToProcess.FileName);
@@ -160,7 +166,7 @@ namespace OpenCv.FeatureDetection.Console
                 }
             }
 
-            var csvMessage = string.Join(',', result.FileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, result.FeatureDetector, result.FeatureDetectorConfiguration);
+            var csvMessage = string.Join(',', generatedImageFileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, result.FeatureDetector, result.FeatureDetectorConfiguration);
             outputStream.WriteLine(csvMessage);
         }
 
