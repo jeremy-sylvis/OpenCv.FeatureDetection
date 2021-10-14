@@ -8,8 +8,6 @@ namespace OpenCv.FeatureDetection.ImageProcessing
 {
     public class ImageDrawing
     {
-        private readonly object _lockObject = new object();
-
         /// <summary>
         /// Draw matches between the given model image and its keypoints and the given observed image and its keypoints using the given matches, mask of descriptors, and homography.
         /// </summary>
