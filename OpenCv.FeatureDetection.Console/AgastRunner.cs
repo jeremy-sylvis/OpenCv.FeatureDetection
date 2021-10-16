@@ -55,7 +55,7 @@ namespace OpenCv.FeatureDetection.Console
     }
 
     /// <summary>
-    /// Parameters describing an AKAZE feature detector/extractor.
+    /// Parameters describing an AGAST feature detector/extractor.
     /// </summary>
     public struct AgastParameters
     {

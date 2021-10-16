@@ -97,14 +97,16 @@ namespace OpenCv.FeatureDetection.Console
         
         private readonly AkazeRunner _akazeRunner;
         private readonly AgastRunner _agastRunner;
+        private readonly OrbRunner _orbRunner;
 
-        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner)
+        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner)
         {
             _parameters = parameters;
             _logger = logger;
             _imageDrawing = imageDrawing;
             _akazeRunner = akazeRunner;
             _agastRunner = agastRunner;
+            _orbRunner = orbRunner;
         }
 
         /// <summary>
@@ -144,8 +146,14 @@ namespace OpenCv.FeatureDetection.Console
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
                         });
 
-                        var agastResults = FuzzAkaze(imageToProcess, imageMat);
+                        var agastResults = FuzzAgast(imageToProcess, imageMat);
                         Parallel.ForEach(agastResults, (x, y, index) =>
+                        {
+                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                        });
+
+                        var orbResults = FuzzOrb(imageToProcess, imageMat);
+                        Parallel.ForEach(orbResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
                         });
@@ -247,6 +255,42 @@ namespace OpenCv.FeatureDetection.Console
                     .Take(batchSize)
                     .AsParallel()
                     .Select(_agastRunner.PerformDetection)
+                    .ToArray();
+
+                foreach (var batchResult in batchResults)
+                {
+                    yield return batchResult;
+                }
+
+                skip += batchSize;
+                if (skip >= parameters.Count) break;
+
+            } while (true);
+        }
+
+        /// <summary>
+        /// Fuzz parameters to the <see cref="ORB"/> feature detector.
+        /// 
+        /// Available documentation regarding ORB has proven exceedingly poor.
+        /// 
+        /// Sources:
+        /// </summary>
+        /// <param name="imageToProcess"></param>
+        /// <param name="image"></param>
+        /// <returns></returns>
+        private IEnumerable<FeatureDetectionResult> FuzzOrb(ImageToProcess imageToProcess, Mat image)
+        {
+            var parameters = _orbRunner.GetParameters(imageToProcess, image);
+
+            var skip = 0;
+            var batchSize = 10;
+            do
+            {
+                var batchResults = parameters
+                    .Skip(skip)
+                    .Take(batchSize)
+                    .AsParallel()
+                    .Select(_orbRunner.PerformDetection)
                     .ToArray();
 
                 foreach (var batchResult in batchResults)
