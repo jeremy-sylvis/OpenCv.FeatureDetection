@@ -94,14 +94,17 @@ namespace OpenCv.FeatureDetection.Console
         private readonly FuzzFeatureDetectorParameters _parameters;
         private readonly Logger _logger;
         private readonly ImageDrawing _imageDrawing;
+        
         private readonly AkazeRunner _akazeRunner;
+        private readonly AgastRunner _agastRunner;
 
-        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner)
+        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner)
         {
             _parameters = parameters;
             _logger = logger;
             _imageDrawing = imageDrawing;
             _akazeRunner = akazeRunner;
+            _agastRunner = agastRunner;
         }
 
         /// <summary>
@@ -132,11 +135,17 @@ namespace OpenCv.FeatureDetection.Console
                     }
 
                     _logger.WriteMessage($"Processing file {imageToProcess.FileName}");
+
                     using (var imageMat = new Mat(imagePath, Emgu.CV.CvEnum.ImreadModes.Color))
                     {
-                        var results = FuzzAkaze(imageToProcess, imageMat);
-                        //Parallel.ForEach(results, new ParallelOptions { MaxDegreeOfParallelism = 4 }, (x, y, index) =>
-                        Parallel.ForEach(results, (x, y, index) =>
+                        var akazeResults = FuzzAkaze(imageToProcess, imageMat);
+                        Parallel.ForEach(akazeResults, (x, y, index) =>
+                        {
+                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                        });
+
+                        var agastResults = FuzzAkaze(imageToProcess, imageMat);
+                        Parallel.ForEach(agastResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
                         });
@@ -191,11 +200,6 @@ namespace OpenCv.FeatureDetection.Console
         /// <returns></returns>
         private IEnumerable<FeatureDetectionResult> FuzzAkaze(ImageToProcess imageToProcess, Mat image)
         {
-            // TODO: Re-tool this to build a set of parameters describing an AKAZE run,
-            // extract the actual run logic to an async method,
-            // use a partitioned parallel foreach to iterate the set of described runs and run the job itself async,
-            // yield/return _from that_
-
             var akazeRuns = _akazeRunner.GetParameters(imageToProcess, image);
 
             var skip = 0;
@@ -209,18 +213,6 @@ namespace OpenCv.FeatureDetection.Console
                     .Select(_akazeRunner.PerformDetection)
                     .ToArray();
 
-                //var batchResults = new List<FeatureDetectionResult>(batchSize);
-                //await batch.ParallelForEachAsync(10, x =>
-                //{
-                //    var batchResult = _akazeRunner.PerformDetection(x);
-                //    batchResults.Add(batchResult);
-                //})
-                //Parallel.ForEach(batch, new ParallelOptions { MaxDegreeOfParallelism = 10 }, x =>
-                //{
-                //    var batchResult = _akazeRunner.PerformDetection(x);
-                //    batchResults.Add(batchResult);
-                //});
-
                 foreach (var batchResult in batchResults)
                 {
                     yield return batchResult;
@@ -232,7 +224,41 @@ namespace OpenCv.FeatureDetection.Console
             } while (true);
         }
 
+        /// <summary>
+        /// Fuzz parameters to the <see cref="AgastFeatureDetector"/> feature detector.
+        /// 
+        /// Available documentation regarding AGAST has proven exceedingly poor.
+        /// 
+        /// Sources:
+        /// </summary>
+        /// <param name="imageToProcess"></param>
+        /// <param name="image"></param>
+        /// <returns></returns>
+        private IEnumerable<FeatureDetectionResult> FuzzAgast(ImageToProcess imageToProcess, Mat image)
+        {
+            var parameters = _agastRunner.GetParameters(imageToProcess, image);
 
+            var skip = 0;
+            var batchSize = 10;
+            do
+            {
+                var batchResults = parameters
+                    .Skip(skip)
+                    .Take(batchSize)
+                    .AsParallel()
+                    .Select(_agastRunner.PerformDetection)
+                    .ToArray();
+
+                foreach (var batchResult in batchResults)
+                {
+                    yield return batchResult;
+                }
+
+                skip += batchSize;
+                if (skip >= parameters.Count) break;
+
+            } while (true);
+        }
 
         /// <summary>
         /// Scan the input path for files related to fuzzing feature detectors.

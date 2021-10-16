@@ -15,12 +15,13 @@ namespace OpenCv.FeatureDetection.Console
             var logger = new Logger();
             var imageDrawing = new ImageDrawing();
             var akazeRunner = new AkazeRunner();
+            var agastRunner = new AgastRunner();
 
             switch (parameters.Operation)
             {
                 case ParameterParser.FuzzFeatureDetectorsOperation:
                     System.Console.WriteLine("Fuzzing feature detectors. Warning: This may take a while to complete.");
-                    var featureDetectorFuzzer = new FeatureDetectorFuzzer(parameters.FuzzFeatureDetectorParameters, logger, imageDrawing, akazeRunner);
+                    var featureDetectorFuzzer = new FeatureDetectorFuzzer(parameters.FuzzFeatureDetectorParameters, logger, imageDrawing, akazeRunner, agastRunner);
                     await featureDetectorFuzzer.FuzzFeatureDetectors();
                     break;
                 default:
