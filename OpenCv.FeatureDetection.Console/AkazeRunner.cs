@@ -10,9 +10,9 @@ using System.Threading.Tasks;
 
 namespace OpenCv.FeatureDetection.Console
 {
-    public class AkazeRunner
+    public class AkazeRunner : FeatureDetectorRunner<AkazeParameters>
     {
-        public IList<AkazeParameters> GetParameters(ImageToProcess imageParameters, Mat image)
+        public override IList<AkazeParameters> GetParameters(ImageToProcess imageParameters, Mat image)
         {
             var akazeParameters = new List<AkazeParameters>();
 
@@ -38,7 +38,7 @@ namespace OpenCv.FeatureDetection.Console
             return akazeParameters;
         }
 
-        public FeatureDetectionResult PerformDetection(AkazeParameters parameters)
+        public override FeatureDetectionResult PerformDetection(AkazeParameters parameters)
         {
             using (var featureDetector = new AKAZE(descriptorType: parameters.DescriptorType, threshold: parameters.Threshold, nOctaves: parameters.Octaves, nOctaveLayers: parameters.OctaveLayers, diffusivity: parameters.DiffusivityType))
             {
@@ -60,13 +60,6 @@ namespace OpenCv.FeatureDetection.Console
 
                 return result;
             }
-        }
-
-        private static bool IsPointInRegionOfInterest(PointF point, Rectangle regionOfInterest)
-        {
-            // Note: With how this counts, bottom is the _higher_ value
-            return regionOfInterest.Left <= point.X && point.X <= regionOfInterest.Right &&
-                regionOfInterest.Top <= point.Y && point.Y <= regionOfInterest.Bottom;
         }
     }
 

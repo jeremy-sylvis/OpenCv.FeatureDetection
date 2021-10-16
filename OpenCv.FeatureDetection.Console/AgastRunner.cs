@@ -7,9 +7,9 @@ using System.Linq;
 
 namespace OpenCv.FeatureDetection.Console
 {
-    public class AgastRunner
+    public class AgastRunner : FeatureDetectorRunner<AgastParameters>
     {
-        public IList<AgastParameters> GetParameters(ImageToProcess imageParameters, Mat image)
+        public override IList<AgastParameters> GetParameters(ImageToProcess imageParameters, Mat image)
         {
             var parameters = new List<AgastParameters>();
 
@@ -28,7 +28,7 @@ namespace OpenCv.FeatureDetection.Console
             return parameters;
         }
 
-        public FeatureDetectionResult PerformDetection(AgastParameters parameters)
+        public override FeatureDetectionResult PerformDetection(AgastParameters parameters)
         {
             using (var featureDetector = new AgastFeatureDetector(threshold: parameters.Threshold, nonmaxSuppression: parameters.UseNonMaxSuppression, type: parameters.AgastType))
             {
@@ -52,12 +52,6 @@ namespace OpenCv.FeatureDetection.Console
             }
         }
 
-        private static bool IsPointInRegionOfInterest(PointF point, Rectangle regionOfInterest)
-        {
-            // Note: With how this counts, bottom is the _higher_ value
-            return regionOfInterest.Left <= point.X && point.X <= regionOfInterest.Right &&
-                regionOfInterest.Top <= point.Y && point.Y <= regionOfInterest.Bottom;
-        }
     }
 
     /// <summary>
