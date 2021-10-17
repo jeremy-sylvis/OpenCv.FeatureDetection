@@ -1,5 +1,6 @@
 ﻿using Emgu.CV;
 using Emgu.CV.Features2D;
+using Emgu.CV.XFeatures2D;
 using Emgu.CV.Structure;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -98,8 +99,9 @@ namespace OpenCv.FeatureDetection.Console
         private readonly AkazeRunner _akazeRunner;
         private readonly AgastRunner _agastRunner;
         private readonly OrbRunner _orbRunner;
+        private readonly StarRunner _starRunner;
 
-        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner)
+        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner, StarRunner starRunner)
         {
             _parameters = parameters;
             _logger = logger;
@@ -107,6 +109,7 @@ namespace OpenCv.FeatureDetection.Console
             _akazeRunner = akazeRunner;
             _agastRunner = agastRunner;
             _orbRunner = orbRunner;
+            _starRunner = starRunner;
         }
 
         /// <summary>
@@ -157,6 +160,12 @@ namespace OpenCv.FeatureDetection.Console
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
                         });
+
+                        var starResults = FuzzStar(imageToProcess, imageMat);
+                        Parallel.ForEach(starResults, (x, y, index) =>
+                        {
+                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                        });
                     }
                 }
             }
@@ -187,6 +196,7 @@ namespace OpenCv.FeatureDetection.Console
             outputStream.WriteLine(csvMessage);
         }
 
+        // TODO: These could *all* be condensed - the runner is all that varies
         /// <summary>
         /// Fuzz parameters to the <see cref="AKAZE"/> feature detector.
         /// 
@@ -291,6 +301,42 @@ namespace OpenCv.FeatureDetection.Console
                     .Take(batchSize)
                     .AsParallel()
                     .Select(_orbRunner.PerformDetection)
+                    .ToArray();
+
+                foreach (var batchResult in batchResults)
+                {
+                    yield return batchResult;
+                }
+
+                skip += batchSize;
+                if (skip >= parameters.Count) break;
+
+            } while (true);
+        }
+
+        /// <summary>
+        /// Fuzz parameters to the <see cref="StarDetector"/> feature detector.
+        /// 
+        /// Available documentation regarding STAR has proven exceedingly poor.
+        /// 
+        /// Sources:
+        /// </summary>
+        /// <param name="imageToProcess"></param>
+        /// <param name="image"></param>
+        /// <returns></returns>
+        private IEnumerable<FeatureDetectionResult> FuzzStar(ImageToProcess imageToProcess, Mat image)
+        {
+            var parameters = _starRunner.GetParameters(imageToProcess, image);
+
+            var skip = 0;
+            var batchSize = 10;
+            do
+            {
+                var batchResults = parameters
+                    .Skip(skip)
+                    .Take(batchSize)
+                    .AsParallel()
+                    .Select(_starRunner.PerformDetection)
                     .ToArray();
 
                 foreach (var batchResult in batchResults)
