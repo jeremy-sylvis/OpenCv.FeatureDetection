@@ -12,18 +12,19 @@ namespace OpenCv.FeatureDetection.Console
         {
             var parameters = new List<OrbParameters>();
 
+            // Should yield 34,560 tests
             for (var numberOfFeatures = 250; numberOfFeatures <= 1500; numberOfFeatures += 250)
             {
                 for (var scaleFactor = 1.1f; scaleFactor <= 1.4f; scaleFactor += 0.1f)
                 {
                     for (var levels = 1; levels <= 4; levels++)
                     {
-                        for (var edgeThreshold = 11; edgeThreshold <= 46; edgeThreshold += 5)
+                        for (var edgeThreshold = 16; edgeThreshold <= 41; edgeThreshold += 5)
                         {
                             var scoreTypes = new[] { ORB.ScoreType.Fast, ORB.ScoreType.Harris };
                             foreach (var scoreType in scoreTypes)
                             {
-                                for (var patchSize = 11; patchSize <= 46; patchSize += 5)
+                                for (var patchSize = 16; patchSize <= 41; patchSize += 5)
                                 {
                                     for (var fastThreshold = 10; fastThreshold <= 30; fastThreshold += 5)
                                     {
