@@ -13,13 +13,13 @@ namespace OpenCv.FeatureDetection.Console
             var parameters = new List<StarParameters>();
 
             // TODO: We should probably allow people to opt-in to invariant transform options
-            for (var maxSize = 10; maxSize <= 85; maxSize += 5)
+            for (var maxSize = 25; maxSize <= 65; maxSize += 5)
             {
                 for (var responseThreshold = 10; responseThreshold <= 50; responseThreshold += 10)
                 {
-                    for (var lineThreshold = 2; lineThreshold <= 20; lineThreshold += 2)
+                    for (var lineThreshold = 4; lineThreshold <= 16; lineThreshold += 2)
                     {
-                        for (var lineThresholdBinarized = 2; lineThresholdBinarized <= 16; lineThresholdBinarized += 2)
+                        for (var lineThresholdBinarized = 4; lineThresholdBinarized <= 14; lineThresholdBinarized += 2)
                         {
                             for (var suppressNonMaxSize = 1; suppressNonMaxSize <= 15; suppressNonMaxSize += 2)
                             {
