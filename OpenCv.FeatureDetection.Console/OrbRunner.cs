@@ -12,7 +12,7 @@ namespace OpenCv.FeatureDetection.Console
         {
             var parameters = new List<OrbParameters>();
 
-            for (var numberOfFeatures = 250; numberOfFeatures <= 1500; numberOfFeatures++)
+            for (var numberOfFeatures = 250; numberOfFeatures <= 1500; numberOfFeatures += 250)
             {
                 for (var scaleFactor = 1.1f; scaleFactor <= 1.4f; scaleFactor += 0.1f)
                 {
