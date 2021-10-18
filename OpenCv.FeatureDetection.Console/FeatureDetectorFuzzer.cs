@@ -100,8 +100,9 @@ namespace OpenCv.FeatureDetection.Console
         private readonly AgastRunner _agastRunner;
         private readonly OrbRunner _orbRunner;
         private readonly StarRunner _starRunner;
+        private readonly SiftRunner _siftRunner;
 
-        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner, StarRunner starRunner)
+        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner, StarRunner starRunner, SiftRunner siftRunner)
         {
             _parameters = parameters;
             _logger = logger;
@@ -110,6 +111,7 @@ namespace OpenCv.FeatureDetection.Console
             _agastRunner = agastRunner;
             _orbRunner = orbRunner;
             _starRunner = starRunner;
+            _siftRunner = siftRunner;
         }
 
         /// <summary>
@@ -163,6 +165,12 @@ namespace OpenCv.FeatureDetection.Console
 
                         var starResults = FuzzStar(imageToProcess, imageMat);
                         Parallel.ForEach(starResults, (x, y, index) =>
+                        {
+                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                        });
+
+                        var siftResults = FuzzSift(imageToProcess, imageMat);
+                        Parallel.ForEach(siftResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
                         });
@@ -337,6 +345,42 @@ namespace OpenCv.FeatureDetection.Console
                     .Take(batchSize)
                     .AsParallel()
                     .Select(_starRunner.PerformDetection)
+                    .ToArray();
+
+                foreach (var batchResult in batchResults)
+                {
+                    yield return batchResult;
+                }
+
+                skip += batchSize;
+                if (skip >= parameters.Count) break;
+
+            } while (true);
+        }
+
+        /// <summary>
+        /// Fuzz parameters to the <see cref="SIFT"/> feature detector.
+        /// 
+        /// Available documentation regarding SIFT has proven exceedingly poor.
+        /// 
+        /// Sources:
+        /// </summary>
+        /// <param name="imageToProcess"></param>
+        /// <param name="image"></param>
+        /// <returns></returns>
+        private IEnumerable<FeatureDetectionResult> FuzzSift(ImageToProcess imageToProcess, Mat image)
+        {
+            var parameters = _siftRunner.GetParameters(imageToProcess, image);
+
+            var skip = 0;
+            var batchSize = 10;
+            do
+            {
+                var batchResults = parameters
+                    .Skip(skip)
+                    .Take(batchSize)
+                    .AsParallel()
+                    .Select(_siftRunner.PerformDetection)
                     .ToArray();
 
                 foreach (var batchResult in batchResults)
