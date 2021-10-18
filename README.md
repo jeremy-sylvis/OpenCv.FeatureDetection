@@ -15,7 +15,7 @@ Let's say you have an image from which you'd like to extract features:
 
 ![Fuzzing example image](examples/fishing-hud-bobber-001.jpg)
 
-You'd like to effectively and reliably extract features from a given area, such as the area round the fishing bobber HUD.
+You'd like to effectively and reliably extract features from a given area, such as the area around the fishing bobber HUD.
 
 This operation lets you define a Region of Interest - a rectangle around that fishing bobber HUD - and effectively brute force calculate which algorithm (and parameters!) gives you meaningful metrics, such as:
 * Count of _good_ features
@@ -53,10 +53,13 @@ The generated report is CSV format for easy import to your spreadsheet of choice
 
 Parameters required:
 * `-InputPath '<path>'` - directory containing inputs
-* `-OutputPath '<path>'` - directory intended to contain the output report and generated reference images
+* `-OutputPath '<path>'` - directory intended to contain the output report and generated reference images.
 
 Execution:
 `OpenCv.FeatureDetection.Console.exe -Operation FuzzFeatureDetectors -InputPath <myPath> -OutputPath <myOutputPath>`
+
+Note:
+Fuzzing will generate many (50-150GB) of reference images per input image depending on size of input. It is suggested this be run with a large storage share as the output.
 
 ## OpenCV Usage
 ### Mat vs UMat
