@@ -6,14 +6,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using OpenCv.FeatureDetection.ImageProcessing;
-using OpenCv.FeatureDetection.ImageProcessing.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using OpenCv.FeatureDetection.Console.Data;
 
 namespace OpenCv.FeatureDetection.Console
 {
@@ -102,7 +101,9 @@ namespace OpenCv.FeatureDetection.Console
         private readonly StarRunner _starRunner;
         private readonly SiftRunner _siftRunner;
 
-        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner, StarRunner starRunner, SiftRunner siftRunner)
+        private readonly ConsoleDbContext _consoleDbContext;
+
+        public FeatureDetectorFuzzer(FuzzFeatureDetectorParameters parameters, Logger logger, ImageDrawing imageDrawing, AkazeRunner akazeRunner, AgastRunner agastRunner, OrbRunner orbRunner, StarRunner starRunner, SiftRunner siftRunner, ConsoleDbContext consoleDbContext)
         {
             _parameters = parameters;
             _logger = logger;
@@ -112,6 +113,8 @@ namespace OpenCv.FeatureDetection.Console
             _orbRunner = orbRunner;
             _starRunner = starRunner;
             _siftRunner = siftRunner;
+
+            _consoleDbContext = consoleDbContext;
         }
 
         /// <summary>
@@ -119,14 +122,22 @@ namespace OpenCv.FeatureDetection.Console
         /// </summary>
         public void FuzzFeatureDetectors()
         {
-            var imagesToProcess = GetInputImages();
-
             // TODO: Ensure output is cleared before run
             var reportFilePath = Path.Combine(_parameters.OutputPath, OutputFileName);
 
             // Clear the old file
             if (File.Exists(reportFilePath))
                 File.Delete(reportFilePath);
+
+            // Get a feature detection session
+            var featureDetectionSession = new FeatureDetectorFuzzingSession
+            {
+                StartDateTime = DateTime.Now
+            };
+            _consoleDbContext.FeatureDetectorFuzzingSessions.Add(featureDetectionSession);
+            _consoleDbContext.SaveChanges();
+
+            var imagesToProcess = GetInputImages();
 
             using (var reportfile = File.Create(reportFilePath))
             using (var reportStreamWriter = new StreamWriter(reportfile))
@@ -154,37 +165,47 @@ namespace OpenCv.FeatureDetection.Console
                         Parallel.ForEach(akazeResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
                         });
+                        _consoleDbContext.SaveChanges();
 
                         var agastResults = FuzzAgast(imageToProcess, imageMat);
                         Parallel.ForEach(agastResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
                         });
+                        _consoleDbContext.SaveChanges();
 
                         var orbResults = FuzzOrb(imageToProcess, imageMat);
                         Parallel.ForEach(orbResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
                         });
+                        _consoleDbContext.SaveChanges();
 
                         var starResults = FuzzStar(imageToProcess, imageMat);
                         Parallel.ForEach(starResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
                         });
+                        _consoleDbContext.SaveChanges();
 
                         var siftResults = FuzzSift(imageToProcess, imageMat);
                         Parallel.ForEach(siftResults, (x, y, index) =>
                         {
                             WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
                         });
+                        _consoleDbContext.SaveChanges();
                     }
                 }
             }
         }
 
-        object _outputLockObject = new object();
+        object _outputReportLockObject = new object();
         /// <summary>
         /// Write the results of feature detection to outputs.
         /// </summary>
@@ -208,12 +229,33 @@ namespace OpenCv.FeatureDetection.Console
 
             // Write report record
             var csvMessage = string.Join(',', result.FileName, result.FeatureDetector, index, generatedImageFileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, generatedImageFileName, result.FeatureDetectorConfiguration);
-            lock (_outputLockObject)
+            lock (_outputReportLockObject)
             {
                 outputStream.WriteLine(csvMessage);
-            }
+            }            
+        }
 
-            // TODO: Write detection results to database
+        /// <summary>
+        /// Record the given FeatureDetectionResult paired to the given fuzzing session.
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="result"></param>
+        /// <param name="index"></param>
+        private void WriteResultDataRecord(FeatureDetectorFuzzingSession session, FeatureDetectionResult result, int index)
+        {
+            var dataFeatureDetectionResult = new Data.FeatureDetectionResult
+            {
+                InputFileName = result.FileName,
+                Algorithm = result.FeatureDetector,
+                Iteration = index,
+                InlierFeatureCount = result.InlierFeatureCount,
+                TotalFeatureCount = result.TotalFeatureCount,
+                InlierOutlierRatio = result.InlierOutlierRatio,
+                ExecutionTime = result.ExecutionTimeMs,
+                Parameters = result.FeatureDetectorConfiguration,
+                FuzzingSession = session
+            };
+            _consoleDbContext.FeatureDetectionResults.Add(dataFeatureDetectionResult);
         }
 
         // TODO: These could *all* be condensed - the runner is all that varies
