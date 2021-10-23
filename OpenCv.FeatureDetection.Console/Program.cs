@@ -6,7 +6,7 @@ namespace OpenCv.FeatureDetection.Console
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             System.Console.WriteLine("OpenCv.FeatureDetection.Console");
 
@@ -25,7 +25,7 @@ namespace OpenCv.FeatureDetection.Console
                 case ParameterParser.FuzzFeatureDetectorsOperation:
                     System.Console.WriteLine("Fuzzing feature detectors. Warning: This may take a while to complete.");
                     var featureDetectorFuzzer = new FeatureDetectorFuzzer(parameters.FuzzFeatureDetectorParameters, logger, imageDrawing, akazeRunner, agastRunner, orbRunner, starRunner, siftRunner);
-                    await featureDetectorFuzzer.FuzzFeatureDetectors();
+                    featureDetectorFuzzer.FuzzFeatureDetectors();
                     break;
                 default:
                     throw new Exception($"Could not process operation {parameters.Operation}");

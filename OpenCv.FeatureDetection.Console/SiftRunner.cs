@@ -12,16 +12,18 @@ namespace OpenCv.FeatureDetection.Console
         {
             var akazeParameters = new List<SiftParameters>();
 
+            //7*6*10*10*10
+            //7*6*8*8*8
             // Note: 0 features is unlimited
             for (var features = 0; features < 1500; features += 250)
             {
                 for (var octaveLayers = 1; octaveLayers <= 6; octaveLayers++)
                 {
-                    for (double contrastThreshold = 0.01d; contrastThreshold <= 0.10d; contrastThreshold += 0.01d)
+                    for (double contrastThreshold = 0.02d; contrastThreshold <= 0.09d; contrastThreshold += 0.01d)
                     {
-                        for (double edgeThreshold = 2; edgeThreshold <= 20; edgeThreshold += 2)
+                        for (double edgeThreshold = 4; edgeThreshold <= 18; edgeThreshold += 2)
                         {
-                            for (double sigma = 1.1d; sigma <= 2.0d; sigma += 0.1d)
+                            for (double sigma = 1.2d; sigma <= 1.9d; sigma += 0.1d)
                             {
                                 akazeParameters.Add(new SiftParameters(imageParameters, image, features, octaveLayers, contrastThreshold, edgeThreshold, sigma));
                             }

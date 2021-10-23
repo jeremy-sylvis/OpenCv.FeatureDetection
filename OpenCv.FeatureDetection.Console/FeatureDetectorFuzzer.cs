@@ -117,19 +117,24 @@ namespace OpenCv.FeatureDetection.Console
         /// <summary>
         /// Get our input images, run them through the various permutations of feature detectors and parameters, and prepare the output report and output images.
         /// </summary>
-        public async Task FuzzFeatureDetectors()
+        public void FuzzFeatureDetectors()
         {
             var imagesToProcess = GetInputImages();
 
             // TODO: Ensure output is cleared before run
             var reportFilePath = Path.Combine(_parameters.OutputPath, OutputFileName);
+
+            // Clear the old file
+            if (File.Exists(reportFilePath))
+                File.Delete(reportFilePath);
+
             using (var reportfile = File.Create(reportFilePath))
             using (var reportStreamWriter = new StreamWriter(reportfile))
             {
                 reportStreamWriter.AutoFlush = true;
 
                 // Insert a header row
-                var headerRow = "FileName,Inliers,Total,Inlier/Outlier Ratio,Execution (ms),Algorithm,Parameters";
+                var headerRow = "InputFileName,Algorithm,Iteration,Inlier Count,Total Count,Inlier/Outlier Ratio,Execution (ms),OutputFileName,Parameters";
                 reportStreamWriter.WriteLine(headerRow);
 
                 foreach (var imageToProcess in imagesToProcess)
@@ -179,6 +184,7 @@ namespace OpenCv.FeatureDetection.Console
             }
         }
 
+        object _outputLockObject = new object();
         /// <summary>
         /// Write the results of feature detection to outputs.
         /// </summary>
@@ -200,8 +206,14 @@ namespace OpenCv.FeatureDetection.Console
                 }
             }
 
-            var csvMessage = string.Join(',', generatedImageFileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, result.FeatureDetector, result.FeatureDetectorConfiguration);
-            outputStream.WriteLine(csvMessage);
+            // Write report record
+            var csvMessage = string.Join(',', result.FileName, result.FeatureDetector, index, generatedImageFileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, generatedImageFileName, result.FeatureDetectorConfiguration);
+            lock (_outputLockObject)
+            {
+                outputStream.WriteLine(csvMessage);
+            }
+
+            // TODO: Write detection results to database
         }
 
         // TODO: These could *all* be condensed - the runner is all that varies
