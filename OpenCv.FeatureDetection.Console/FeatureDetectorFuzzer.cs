@@ -83,6 +83,16 @@ namespace OpenCv.FeatureDetection.Console
         }
     }
 
+    [Flags]
+    public enum FeatureDetectorAlgorithms
+    {
+        AKAZE = 1,
+        AGAST = 2,
+        ORB = 4,
+        STAR = 8,
+        SIFT = 16
+    }
+
     /// <summary>
     /// A fuzzer for detecting the effective algorithms (and parameter sets) for detecting keypoints in the defined region of interest for an image.
     /// </summary>
@@ -161,48 +171,66 @@ namespace OpenCv.FeatureDetection.Console
 
                     using (var imageMat = new Mat(imagePath, Emgu.CV.CvEnum.ImreadModes.Color))
                     {
-                        var akazeResults = FuzzAkaze(imageToProcess, imageMat);
-                        Parallel.ForEach(akazeResults, (x, y, index) =>
+                        if (_parameters.SpecifiedFeatureDetectorAlgorithms == null || _parameters.SpecifiedFeatureDetectorAlgorithms.Value.HasFlag(FeatureDetectorAlgorithms.AKAZE))
                         {
-                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
-                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
-                        });
-                        _consoleDbContext.SaveChanges();
+                            var akazeResults = FuzzAkaze(imageToProcess, imageMat);
+                            Parallel.ForEach(akazeResults, (x, y, index) =>
+                            {
+                                WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                                WriteResultDataRecord(featureDetectionSession, x, (int)index);
+                            });
+                            _consoleDbContext.SaveChanges();
+                        }
 
-                        var agastResults = FuzzAgast(imageToProcess, imageMat);
-                        Parallel.ForEach(agastResults, (x, y, index) =>
+                        if (_parameters.SpecifiedFeatureDetectorAlgorithms == null || _parameters.SpecifiedFeatureDetectorAlgorithms.Value.HasFlag(FeatureDetectorAlgorithms.AGAST))
                         {
-                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
-                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
-                        });
-                        _consoleDbContext.SaveChanges();
+                            var agastResults = FuzzAgast(imageToProcess, imageMat);
+                            Parallel.ForEach(agastResults, (x, y, index) =>
+                            {
+                                WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                                WriteResultDataRecord(featureDetectionSession, x, (int)index);
+                            });
+                            _consoleDbContext.SaveChanges();
+                        }
 
-                        var orbResults = FuzzOrb(imageToProcess, imageMat);
-                        Parallel.ForEach(orbResults, (x, y, index) =>
+                        if (_parameters.SpecifiedFeatureDetectorAlgorithms == null || _parameters.SpecifiedFeatureDetectorAlgorithms.Value.HasFlag(FeatureDetectorAlgorithms.ORB))
                         {
-                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
-                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
-                        });
-                        _consoleDbContext.SaveChanges();
+                            var orbResults = FuzzOrb(imageToProcess, imageMat);
+                            Parallel.ForEach(orbResults, (x, y, index) =>
+                            {
+                                WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                                WriteResultDataRecord(featureDetectionSession, x, (int)index);
+                            });
+                            _consoleDbContext.SaveChanges();
+                        }
 
-                        var starResults = FuzzStar(imageToProcess, imageMat);
-                        Parallel.ForEach(starResults, (x, y, index) =>
+                        if (_parameters.SpecifiedFeatureDetectorAlgorithms == null || _parameters.SpecifiedFeatureDetectorAlgorithms.Value.HasFlag(FeatureDetectorAlgorithms.STAR))
                         {
-                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
-                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
-                        });
-                        _consoleDbContext.SaveChanges();
+                            var starResults = FuzzStar(imageToProcess, imageMat);
+                            Parallel.ForEach(starResults, (x, y, index) =>
+                            {
+                                WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                                WriteResultDataRecord(featureDetectionSession, x, (int)index);
+                            });
+                            _consoleDbContext.SaveChanges();
+                        }
 
-                        var siftResults = FuzzSift(imageToProcess, imageMat);
-                        Parallel.ForEach(siftResults, (x, y, index) =>
+                        if (_parameters.SpecifiedFeatureDetectorAlgorithms == null || _parameters.SpecifiedFeatureDetectorAlgorithms.Value.HasFlag(FeatureDetectorAlgorithms.SIFT))
                         {
-                            WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
-                            WriteResultDataRecord(featureDetectionSession, x, (int)index);
-                        });
-                        _consoleDbContext.SaveChanges();
+                            var siftResults = FuzzSift(imageToProcess, imageMat);
+                            Parallel.ForEach(siftResults, (x, y, index) =>
+                            {
+                                WriteDetectionResults(reportStreamWriter, x, (int)index, imageMat, imageToProcess.RegionOfInterest);
+                                WriteResultDataRecord(featureDetectionSession, x, (int)index);
+                            });
+                            _consoleDbContext.SaveChanges();
+                        }
                     }
                 }
             }
+
+            featureDetectionSession.EndDateTime = DateTime.Now;
+            _consoleDbContext.SaveChanges();
         }
 
         object _outputReportLockObject = new object();
@@ -228,13 +256,14 @@ namespace OpenCv.FeatureDetection.Console
             }
 
             // Write report record
-            var csvMessage = string.Join(',', result.FileName, result.FeatureDetector, index, generatedImageFileName, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, generatedImageFileName, result.FeatureDetectorConfiguration);
+            var csvMessage = string.Join(',', result.FileName, result.FeatureDetector, index, result.InlierFeatureCount, result.TotalFeatureCount, result.InlierOutlierRatio, result.ExecutionTimeMs, generatedImageFileName, result.FeatureDetectorConfiguration);
             lock (_outputReportLockObject)
             {
                 outputStream.WriteLine(csvMessage);
             }            
         }
 
+        private readonly object _writeDataResultLockObject = new object();
         /// <summary>
         /// Record the given FeatureDetectionResult paired to the given fuzzing session.
         /// </summary>
@@ -243,6 +272,8 @@ namespace OpenCv.FeatureDetection.Console
         /// <param name="index"></param>
         private void WriteResultDataRecord(FeatureDetectorFuzzingSession session, FeatureDetectionResult result, int index)
         {
+            // https://stackoverflow.com/a/639018/622388
+            // Comparisons to NaN always return false. I need to use float.IsNaN()
             var dataFeatureDetectionResult = new Data.FeatureDetectionResult
             {
                 InputFileName = result.FileName,
@@ -250,12 +281,16 @@ namespace OpenCv.FeatureDetection.Console
                 Iteration = index,
                 InlierFeatureCount = result.InlierFeatureCount,
                 TotalFeatureCount = result.TotalFeatureCount,
-                InlierOutlierRatio = result.InlierOutlierRatio,
+                InlierOutlierRatio = float.IsNaN(result.InlierOutlierRatio) ? 0 : result.InlierOutlierRatio,
                 ExecutionTime = result.ExecutionTimeMs,
                 Parameters = result.FeatureDetectorConfiguration,
                 FuzzingSession = session
             };
-            _consoleDbContext.FeatureDetectionResults.Add(dataFeatureDetectionResult);
+
+            lock (_writeDataResultLockObject)
+            {
+                _consoleDbContext.FeatureDetectionResults.Add(dataFeatureDetectionResult);
+            }
         }
 
         // TODO: These could *all* be condensed - the runner is all that varies
@@ -281,6 +316,7 @@ namespace OpenCv.FeatureDetection.Console
         private IEnumerable<FeatureDetectionResult> FuzzAkaze(ImageToProcess imageToProcess, Mat image)
         {
             var akazeRuns = _akazeRunner.GetParameters(imageToProcess, image);
+            _logger.WriteMessage($"There are {akazeRuns.Count} AKAZE iterations to process.");
 
             var skip = 0;
             var batchSize = 10;
@@ -302,6 +338,8 @@ namespace OpenCv.FeatureDetection.Console
                 if (skip >= akazeRuns.Count) break;
 
             } while (true);
+
+            _logger.WriteMessage("AKAZE fuzzing complete.");
         }
 
         /// <summary>
@@ -317,6 +355,7 @@ namespace OpenCv.FeatureDetection.Console
         private IEnumerable<FeatureDetectionResult> FuzzAgast(ImageToProcess imageToProcess, Mat image)
         {
             var parameters = _agastRunner.GetParameters(imageToProcess, image);
+            _logger.WriteMessage($"There are {parameters.Count} AGAST iterations to process.");
 
             var skip = 0;
             var batchSize = 10;
@@ -338,6 +377,8 @@ namespace OpenCv.FeatureDetection.Console
                 if (skip >= parameters.Count) break;
 
             } while (true);
+
+            _logger.WriteMessage("AGAST fuzzing complete.");
         }
 
         /// <summary>
@@ -353,6 +394,7 @@ namespace OpenCv.FeatureDetection.Console
         private IEnumerable<FeatureDetectionResult> FuzzOrb(ImageToProcess imageToProcess, Mat image)
         {
             var parameters = _orbRunner.GetParameters(imageToProcess, image);
+            _logger.WriteMessage($"There are {parameters.Count} ORB iterations to process.");
 
             var skip = 0;
             var batchSize = 10;
@@ -374,6 +416,8 @@ namespace OpenCv.FeatureDetection.Console
                 if (skip >= parameters.Count) break;
 
             } while (true);
+
+            _logger.WriteMessage("ORB fuzzing complete.");
         }
 
         /// <summary>
@@ -389,6 +433,7 @@ namespace OpenCv.FeatureDetection.Console
         private IEnumerable<FeatureDetectionResult> FuzzStar(ImageToProcess imageToProcess, Mat image)
         {
             var parameters = _starRunner.GetParameters(imageToProcess, image);
+            _logger.WriteMessage($"There are {parameters.Count} STAR iterations to process.");
 
             var skip = 0;
             var batchSize = 10;
@@ -410,6 +455,8 @@ namespace OpenCv.FeatureDetection.Console
                 if (skip >= parameters.Count) break;
 
             } while (true);
+
+            _logger.WriteMessage("STAR fuzzing complete.");
         }
 
         /// <summary>
@@ -425,6 +472,7 @@ namespace OpenCv.FeatureDetection.Console
         private IEnumerable<FeatureDetectionResult> FuzzSift(ImageToProcess imageToProcess, Mat image)
         {
             var parameters = _siftRunner.GetParameters(imageToProcess, image);
+            _logger.WriteMessage($"There are {parameters.Count} SIFT iterations to process.");
 
             var skip = 0;
             var batchSize = 10;
@@ -446,6 +494,8 @@ namespace OpenCv.FeatureDetection.Console
                 if (skip >= parameters.Count) break;
 
             } while (true);
+
+            _logger.WriteMessage("SIFT fuzzing complete.");
         }
 
         /// <summary>

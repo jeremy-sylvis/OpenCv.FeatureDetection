@@ -2,7 +2,7 @@
   "profiles": {
     "OpenCv.FeatureDetection.Console": {
       "commandName": "Project",
-      "commandLineArgs": "-Operation FuzzFeatureDetectors -InputPath \"C:\\Users\\tviru\\source\\repos\\OpenCv.FeatureDetection\\fuzzer-inputs\" -OutputPath \"Z:\\fuzzer-outputs\""
+      "commandLineArgs": "-Operation FuzzFeatureDetectors -InputPath \"C:\\Users\\tviru\\source\\repos\\OpenCv.FeatureDetection\\fuzzer-inputs\" -OutputPath \"E:\\fuzzer-outputs\" -Algorithms AGAST,ORB,STAR"
     }
   }
 }

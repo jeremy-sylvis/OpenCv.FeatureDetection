@@ -51,9 +51,12 @@ The generated report is CSV format for easy import to your spreadsheet of choice
 * Parameters for the algorithm used
 * Execution time
 
-Parameters required:
+Required Parameters:
 * `-InputPath '<path>'` - directory containing inputs
 * `-OutputPath '<path>'` - directory intended to contain the output report and generated reference images.
+
+Optional Parameters:
+* `-Algorithms <comma-separated set>` - Set of algorithms to run. If omitted, all algorithms are assumed. Useful for fuzzing a targeted set of algorithms.
 
 Execution:
 `OpenCv.FeatureDetection.Console.exe -Operation FuzzFeatureDetectors -InputPath <myPath> -OutputPath <myOutputPath>`
@@ -68,3 +71,7 @@ Using UMat in favor of Mat comes with serious performance implications. Benchmar
 The primary benefit of UMat is that wherever possible (and, in theory, _sensible_) OpenCV will opt for an OpenCL-accelerated execution route. Understand that GPU-accelerated OpenCL contexts can be _incredibly_ expensive to set up. For some cases, e.g. Feature2DToolbox.DrawKeypoints, the UMat variant ("accelerated") will run orders of magnitude slower than the Mat variant.
 
 In practice, I've only observed gains from use of UMat with GPU-accelerated feature detection algorithms (e.g. AKAZE) and nowhere else in this codebase.
+
+### Feature Detection Algorithms
+#### AKAZE
+Results for AKAZE are generally very good - important features are detected without unimportant features - but, even with GPU offload, execution time is high. This is not likely to be useful for high-performance scenarios (e.g. real-time) without dedicated hardware for processing offload.

@@ -34,6 +34,15 @@ namespace OpenCv.FeatureDetection.Console.Data
             featureDetectionResultsEntity.ToTable("FeatureDetectionResult");
             featureDetectionResultsEntity.HasKey(x => x.Id);
 
+            // Create a composite key on Input File, Algorithm, and Iteration
+            featureDetectionResultsEntity.HasIndex(x =>
+            new
+            {
+                x.InputFileName,
+                x.Algorithm,
+                x.Iteration
+            });
+
             base.OnModelCreating(modelBuilder);
         }
     }

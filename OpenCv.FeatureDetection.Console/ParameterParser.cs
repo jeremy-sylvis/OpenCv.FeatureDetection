@@ -27,10 +27,14 @@ namespace OpenCv.FeatureDetection.Console
         public string InputPath { get; private set; }
         public string OutputPath { get; private set; }
 
-        public FuzzFeatureDetectorParameters(string inputPath, string outputPath)
+        public FeatureDetectorAlgorithms? SpecifiedFeatureDetectorAlgorithms { get; private set; }
+
+        public FuzzFeatureDetectorParameters(string inputPath, string outputPath, FeatureDetectorAlgorithms? featureDetectorAlgorithms)
         {
             InputPath = inputPath;
             OutputPath = outputPath;
+
+            SpecifiedFeatureDetectorAlgorithms = featureDetectorAlgorithms;
         }
     }
 
@@ -46,6 +50,7 @@ namespace OpenCv.FeatureDetection.Console
 
         public const string InputPathParameter = "-InputPath";
         public const string OutputPathParameter = "-OutputPath";
+        public const string AlgorithmsParameter = "-Algorithms";
 
         /// <summary>
         /// Parse the given arguments for parameter information.
@@ -97,6 +102,8 @@ namespace OpenCv.FeatureDetection.Console
             string inputPath = null;
             string outputPath = null;
 
+            FeatureDetectorAlgorithms? specifiedFeatureDetectorAlgorithms = null;
+
             for (var index = 0; index < arguments.Length; index++)
             {
                 if (arguments[index] == InputPathParameter)
@@ -104,7 +111,7 @@ namespace OpenCv.FeatureDetection.Console
                     // Operation requires a paired operand
                     if (index + 1 >= arguments.Length)
                     {
-                        throw new Exception("'-InputPath' requires a value.");
+                        throw new Exception($"'{InputPathParameter}' requires a value.");
                     }
 
                     inputPath = arguments[index + 1];
@@ -118,10 +125,49 @@ namespace OpenCv.FeatureDetection.Console
                     // Operation requires a paired operand
                     if (index + 1 >= arguments.Length)
                     {
-                        throw new Exception("'-OutputPath' requires a value.");
+                        throw new Exception($"'{OutputPathParameter}' requires a value.");
                     }
 
                     outputPath = arguments[index + 1];
+                    index++;
+                    continue;
+                }
+
+                if (arguments[index] == AlgorithmsParameter)
+                {
+                    //Operation requires a paired operand
+                    if (index + 1 >= arguments.Length)
+                    {
+                        throw new Exception($"'{AlgorithmsParameter}' requires a value.");
+                    }
+
+                    // Algorithms is expected to be a CSV
+                    var chosenAlgorithmsCsv = arguments[index + 1];
+                    var chosenAlgorithms = chosenAlgorithmsCsv.Split(',');
+                    foreach (var chosenAlgorithm in chosenAlgorithms)
+                    {
+                        // Account for any whitespace the user may have included
+                        var cleanedChosenAlgorithm = chosenAlgorithm.Trim();
+
+                        // Attempt to parse it as an enum value
+                        FeatureDetectorAlgorithms featureDetectorAlgorithm = FeatureDetectorAlgorithms.AKAZE;
+                        
+                        if (!Enum.TryParse(cleanedChosenAlgorithm, true, out featureDetectorAlgorithm))
+                        {
+                            throw new ArgumentException($"Specified algorithm '{cleanedChosenAlgorithm}' was not recognized.");
+                        }
+
+                        // Set it in the result set
+                        if (specifiedFeatureDetectorAlgorithms == null)
+                        {
+                            specifiedFeatureDetectorAlgorithms = featureDetectorAlgorithm;
+                        }
+                        else
+                        {
+                            specifiedFeatureDetectorAlgorithms |= featureDetectorAlgorithm;
+                        }
+                    }
+                    
                     index++;
                     continue;
                 }
@@ -137,7 +183,7 @@ namespace OpenCv.FeatureDetection.Console
                 throw new Exception("'-OutputPath' is required.");
             }
 
-            var result = new FuzzFeatureDetectorParameters(inputPath, outputPath);
+            var result = new FuzzFeatureDetectorParameters(inputPath, outputPath, specifiedFeatureDetectorAlgorithms);
             return result;
         }
     }
